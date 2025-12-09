@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proses Upload CSV</title>
+
+<!-- SB Admin 2 CSS -->
+<link href="../assets/vendor/fontawesome-free/css/all.css" rel="stylesheet">
+<link href="../assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="../assets/css/sb-admin-2.css" rel="stylesheet">
+
+<style>
+#log-box {
+    height: 300px; 
+    overflow-y: auto; 
+    border: 1px solid #ddd; 
+    padding: 10px; 
+    font-family: monospace; 
+    background-color: #f8f9fc;
+}
+</style>
+</head>
+<body id="page-top">
+
+<div id="wrapper">
+
+    <!-- Sidebar -->
+    <?php include 'sidebar.php'; ?>
+    <!-- End of Sidebar -->
+
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content" class="container-fluid">
+
+            <h1 class="h3 mb-4 text-gray-800 text-center">Proses Upload & Analisis Data</h1>
+
+            <div class="card shadow mb-4">
+                <div class="card-body">
+
+                    <!-- Progress Bar -->
+                    <div class="mb-3">
+                        <div class="progress">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Log Box -->
+                    <div id="log-box" class="mb-3"></div>
+
+                    <p>Anda dapat menutup halaman ini, <a href="form_upload_csv.php">kembali</a>.</p>
+
+                </div>
+            </div>
+
+        </div>
+
+        <?php include 'footer.php'; ?>
+
+    </div>
+
+</div>
+
+<!-- SB Admin 2 JS -->
+<script src="../assets/vendor/jquery/jquery.min.js"></script>
+<script src="../assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/vendor/jquery-easing/jquery.easing.min.js"></script>
+<script src="../assets/js/sb-admin-2.min.js"></script>
+
+<script>
+const progressBar = document.getElementById('progress-bar');
+const logBox = document.getElementById('log-box');
+
+function updateProgressBar(percent) {
+    progressBar.style.width = percent + '%';
+    progressBar.textContent = percent + '%';
+    // Ubah warna progress bar
+    if(percent < 50){
+        progressBar.classList.remove('bg-success','bg-warning');
+        progressBar.classList.add('bg-danger');
+    } else if(percent < 100){
+        progressBar.classList.remove('bg-success','bg-danger');
+        progressBar.classList.add('bg-warning');
+    } else {
+        progressBar.classList.remove('bg-danger','bg-warning');
+        progressBar.classList.add('bg-success');
+    }
+}
+
+function addLog(message, type='success'){
+    const span = document.createElement('span');
+    span.classList.add('badge','mb-1');
+    span.style.display='block';
+    span.textContent = message;
+
+    switch(type){
+        case 'error':
+            span.classList.add('badge-danger');
+            break;
+        case 'warn':
+            span.classList.add('badge-warning');
+            break;
+        default:
+            span.classList.add('badge-success');
+    }
+
+    logBox.appendChild(span);
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+const source = new EventSource('proses_upload_csv.php');
+source.onmessage = function(event){
+    const data = JSON.parse(event.data);
+
+    if(data.progress!==undefined){
+        updateProgressBar(data.progress);
+    }
+
+    if(data.message){
+        addLog(data.message, data.type);
+    }
+
+    if(data.done && data.redirect){
+    let msg = `Batch ID: ${data.batch_id}\n`;
+
+    if(data.gagal && data.gagal > 0){
+            msg += `⚠️ Ada ${data.gagal} data gagal disimpan.\nKlik OK untuk melihat log gagal.`;
+        } else {
+            msg += 'Semua data berhasil disimpan.';
+        }
+
+        if(confirm(msg)){
+            window.location.href = data.redirect; 
+        }
+    }
+};
+</script>
+
+</body>
+</html>
